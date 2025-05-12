@@ -45,5 +45,5 @@ uvicorn==0.34.2
 gunicorn
 pillow
 tensorflow
-
+requests
 

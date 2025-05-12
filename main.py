@@ -7,6 +7,7 @@ import io
 import tensorflow as tf
 import logging
 import os
+import requests
 
 app = FastAPI()
 
@@ -37,18 +38,24 @@ model = None
 @app.on_event("startup")
 async def load_model():
     global model
-    try:
-        model_path = os.path.join(os.path.dirname(__file__), "model", "model.h5")
-        if not os.path.exists(model_path):
-            logger.error(f"Model file not found at {model_path}")
-            raise FileNotFoundError(f"Model file not found at {model_path}")
+    model_dir = os.path.join(os.path.dirname(__file__), "model")
+    model_path = os.path.join(model_dir, "model.h5")
+    os.makedirs(model_dir, exist_ok=True)
 
-        model = tf.keras.models.load_model(model_path)
-        input_shape = model.input_shape
-        logger.info(f"Model loaded successfully. Expected input shape: {input_shape}")
-    except Exception as e:
-        logger.error(f"Failed to load model: {str(e)}")
-        raise
+    if not os.path.exists(model_path):
+        logger.info("model.h5 not found. Downloading from Google Drive…")
+        url = "https://drive.google.com/uc?export=download&id=1_WF39WHIFSSQOIWNKCNLMzuk68ofmM9G"
+        resp = requests.get(url)
+        resp.raise_for_status()
+        with open(model_path, "wb") as f:
+            f.write(resp.content)
+        logger.info("Downloaded model.h5 successfully.")
+
+    # load the model as before
+    model = tf.keras.models.load_model(model_path)
+    logger.info(f"Model loaded. Input shape: {model.input_shape}")
+
+
 
 # Image preprocessing function
 def preprocess_image(image: Image.Image):
